@@ -5,29 +5,29 @@
     "_generator": {
       "name": "bicep",
       "version": "0.47.16.16243",
-      "templateHash": "6583694649336601309"
+      "templateHash": "15092413009373733427"
     }
   },
   "parameters": {
     "location": {
       "type": "string",
-      "defaultValue": "chilecentral",
+      "defaultValue": "[resourceGroup().location]",
       "metadata": {
-        "description": "Región de Azure donde se desplegarán los recursos."
+        "description": "Regi\u00f3n de Azure donde se desplegar\u00e1n los recursos."
       }
     },
     "vmName": {
       "type": "string",
       "defaultValue": "wikijs-vm",
       "metadata": {
-        "description": "Nombre de la máquina virtual."
+        "description": "Nombre de la m\u00e1quina virtual."
       }
     },
     "vmSize": {
       "type": "string",
-      "defaultValue": "Standard_D2s_v4",
+      "defaultValue": "Standard_D2s_v7",
       "metadata": {
-        "description": "Tamaño de la máquina virtual."
+        "description": "Tama\u00f1o de la m\u00e1quina virtual."
       }
     },
     "adminUsername": {
@@ -62,7 +62,7 @@
       "type": "string",
       "defaultValue": "wikijs-public-ip",
       "metadata": {
-        "description": "Nombre de la dirección IP pública."
+        "description": "Nombre de la direcci\u00f3n IP p\u00fablica."
       }
     },
     "networkInterfaceName": {
@@ -75,7 +75,7 @@
     "sshPublicKey": {
       "type": "string",
       "metadata": {
-        "description": "Clave pública SSH utilizada para acceder a la máquina virtual."
+        "description": "Clave p\u00fablica SSH utilizada para acceder a la m\u00e1quina virtual."
       }
     }
   },
