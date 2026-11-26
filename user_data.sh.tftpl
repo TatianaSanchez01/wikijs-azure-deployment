@@ -1,0 +1,46 @@
+#!/bin/bash
+set -euxo pipefail
+
+dnf update -y
+dnf install -y docker
+
+systemctl enable --now docker
+
+# Credenciales interpoladas por Terraform.
+DB_NAME="${db_name}"
+DB_USER="${db_username}"
+DB_PASSWORD="${db_password}"
+
+docker network create wikijs-network || true
+docker volume create wikijs-postgres-data
+
+docker run -d \
+  --name wikijs-postgres \
+  --restart unless-stopped \
+  --network wikijs-network \
+  -e POSTGRES_DB="$${DB_NAME}" \
+  -e POSTGRES_USER="$${DB_USER}" \
+  -e POSTGRES_PASSWORD="$${DB_PASSWORD}" \
+  -v wikijs-postgres-data:/var/lib/postgresql/data \
+  postgres:15-alpine
+
+# Espera a que PostgreSQL acepte conexiones antes de arrancar Wiki.js.
+for attempt in $(seq 1 30); do
+  if docker exec wikijs-postgres pg_isready -U "$${DB_USER}" -d "$${DB_NAME}"; then
+    break
+  fi
+  sleep 5
+done
+
+docker run -d \
+  --name wikijs \
+  --restart unless-stopped \
+  --network wikijs-network \
+  -p 3000:3000 \
+  -e DB_TYPE=postgres \
+  -e DB_HOST=wikijs-postgres \
+  -e DB_PORT=5432 \
+  -e DB_USER="$${DB_USER}" \
+  -e DB_PASS="$${DB_PASSWORD}" \
+  -e DB_NAME="$${DB_NAME}" \
+  requarks/wiki:2

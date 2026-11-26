@@ -1,0 +1,19 @@
+aws_region         = "us-east-1"
+project_name       = "wikijs-aws"
+vpc_cidr           = "10.20.0.0/16"
+public_subnet_cidr = "10.20.1.0/24"
+
+# Para restringir el acceso, usa tu IP pública, por ejemplo ["203.0.113.10/32"].
+# El valor de abajo permite acceder desde cualquier IPv4.
+app_allowed_cidrs = ["0.0.0.0/0"]
+
+instance_type    = "t3.small"
+root_volume_size = 20
+
+db_name     = "wikijs"
+db_username = "wikijs"
+db_password = "CambiaEstaClave_2026"
+
+aws_region = "us-east-1"
+my_ip      = "0.0.0.0/32"
+key_name   = "test_ps"
