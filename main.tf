@@ -1,11 +1,29 @@
 module "networking" {
   source = "./modules/networking"
 
-  project_name       = var.project_name
-  vpc_cidr           = var.vpc_cidr
-  public_subnet_cidr = var.public_subnet_cidr
-  app_allowed_cidrs  = var.app_allowed_cidrs
-  my_ip              = var.my_ip
+  project_name         = var.project_name
+  vpc_cidr             = var.vpc_cidr
+  public_subnet_cidr   = var.public_subnet_cidr
+  private_subnet_cidrs = var.private_subnet_cidrs
+  app_allowed_cidrs    = var.app_allowed_cidrs
+  my_ip                = var.my_ip
+}
+
+module "database" {
+  source = "./modules/database"
+
+  project_name          = var.project_name
+  vpc_id                = module.networking.vpc_id
+  private_subnet_ids    = module.networking.private_subnet_ids
+  app_security_group_id = module.networking.web_security_group_id
+  db_name               = var.db_name
+  db_username           = var.db_username
+  db_instance_class     = var.db_instance_class
+}
+
+resource "aws_cloudwatch_log_group" "application" {
+  name              = "/aws/ec2/${var.project_name}/wikijs"
+  retention_in_days = 7
 }
 
 module "compute" {
@@ -14,13 +32,26 @@ module "compute" {
   project_name      = var.project_name
   subnet_id         = module.networking.public_subnet_id
   security_group_id = module.networking.web_security_group_id
+  instance_type     = var.instance_type
+  root_volume_size  = var.root_volume_size
+  key_name          = var.key_name
+  aws_region        = var.aws_region
 
-  instance_type    = var.instance_type
-  root_volume_size = var.root_volume_size
+  db_name        = var.db_name
+  db_username    = var.db_username
+  db_host        = module.database.endpoint
+  db_port        = module.database.port
+  db_secret_arn  = module.database.master_user_secret_arn
+  log_group_name = aws_cloudwatch_log_group.application.name
+}
 
-  db_name     = var.db_name
-  db_username = var.db_username
-  db_password = var.db_password
+module "observability" {
+  source = "./modules/observability"
 
-  key_name = var.key_name
+  project_name          = var.project_name
+  aws_region            = var.aws_region
+  ec2_instance_id       = module.compute.instance_id
+  rds_identifier        = module.database.identifier
+  application_log_group = aws_cloudwatch_log_group.application.name
+  alert_email           = var.alert_email
 }

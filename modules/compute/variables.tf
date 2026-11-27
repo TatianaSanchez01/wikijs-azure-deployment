@@ -1,45 +1,39 @@
 variable "project_name" {
-  description = "Prefijo usado en los nombres de los recursos."
-  type        = string
+  type = string
 }
-
 variable "subnet_id" {
-  description = "Identificador de la subnet pública."
-  type        = string
+  type = string
 }
-
 variable "security_group_id" {
-  description = "Identificador del grupo de seguridad."
-  type        = string
+  type = string
 }
-
 variable "instance_type" {
-  description = "Tipo de instancia EC2."
-  type        = string
+  type = string
 }
-
 variable "root_volume_size" {
-  description = "Tamaño del volumen raíz en GB."
-  type        = number
+  type = number
 }
-
-variable "db_name" {
-  description = "Nombre de la base de datos PostgreSQL."
-  type        = string
-}
-
-variable "db_username" {
-  description = "Usuario de PostgreSQL."
-  type        = string
-}
-
-variable "db_password" {
-  description = "Contraseña de PostgreSQL."
-  type        = string
-  sensitive   = true
-}
-
 variable "key_name" {
-  description = "Par de claves EC2 existente en la región."
-  type        = string
+  type = string
+}
+variable "aws_region" {
+  type = string
+}
+variable "db_name" {
+  type = string
+}
+variable "db_username" {
+  type = string
+}
+variable "db_host" {
+  type = string
+}
+variable "db_port" {
+  type = number
+}
+variable "db_secret_arn" {
+  type = string
+}
+variable "log_group_name" {
+  type = string
 }

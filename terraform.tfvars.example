@@ -1,19 +1,20 @@
-aws_region         = "us-east-1"
-project_name       = "wikijs-aws"
-vpc_cidr           = "10.20.0.0/16"
-public_subnet_cidr = "10.20.1.0/24"
+aws_region          = "us-east-1"
+project_name        = "wikijs-aws"
+vpc_cidr            = "10.20.0.0/16"
+public_subnet_cidr  = "10.20.1.0/24"
+private_subnet_cidrs = ["10.20.2.0/24", "10.20.3.0/24"]
 
-# Para restringir el acceso, usa tu IP pública, por ejemplo ["203.0.113.10/32"].
-# El valor de abajo permite acceder desde cualquier IPv4.
+# Para una demo abierta: 0.0.0.0/0. Para acceso controlado, usa tu IP/32.
 app_allowed_cidrs = ["0.0.0.0/0"]
+instance_type     = "t3.small"
+root_volume_size  = 20
 
-instance_type    = "t3.small"
-root_volume_size = 20
+db_name           = "wikijs"
+db_username       = "wikijs"
+db_instance_class = "db.t4g.micro"
 
-db_name     = "wikijs"
-db_username = "wikijs"
-db_password = "CambiaEstaClave_2026"
+# Requiere confirmar la suscripción que AWS SNS envía por correo.
+alert_email = ""
 
-aws_region = "us-east-1"
-my_ip      = "0.0.0.0/32"
-key_name   = "test_ps"
+my_ip    = "203.0.113.10/32"
+key_name = "mi-par-ec2"

@@ -1,46 +1,66 @@
 #!/bin/bash
-set -euxo pipefail
+set -euo pipefail
 
+# Never use shell tracing here: the script reads the DB password.
 dnf update -y
-dnf install -y docker
-
+dnf install -y docker jq amazon-cloudwatch-agent curl awscli
 systemctl enable --now docker
 
-# Credenciales interpoladas por Terraform.
-DB_NAME="${db_name}"
+mkdir -p /opt/aws/amazon-cloudwatch-agent/etc
+cat > /opt/aws/amazon-cloudwatch-agent/etc/wikijs-config.json <<'CW_CONFIG'
+${cloudwatch_config_json}
+CW_CONFIG
+/opt/aws/amazon-cloudwatch-agent/bin/amazon-cloudwatch-agent-ctl \
+  -a fetch-config -m ec2 -s -c file:/opt/aws/amazon-cloudwatch-agent/etc/wikijs-config.json
+
+AWS_REGION="${aws_region}"
+DB_SECRET_ARN="${db_secret_arn}"
+DB_HOST="${db_host}"
+DB_PORT="${db_port}"
 DB_USER="${db_username}"
-DB_PASSWORD="${db_password}"
+DB_NAME="${db_name}"
 
-docker network create wikijs-network || true
-docker volume create wikijs-postgres-data
-
-docker run -d \
-  --name wikijs-postgres \
-  --restart unless-stopped \
-  --network wikijs-network \
-  -e POSTGRES_DB="$${DB_NAME}" \
-  -e POSTGRES_USER="$${DB_USER}" \
-  -e POSTGRES_PASSWORD="$${DB_PASSWORD}" \
-  -v wikijs-postgres-data:/var/lib/postgresql/data \
-  postgres:15-alpine
-
-# Espera a que PostgreSQL acepte conexiones antes de arrancar Wiki.js.
-for attempt in $(seq 1 30); do
-  if docker exec wikijs-postgres pg_isready -U "$${DB_USER}" -d "$${DB_NAME}"; then
+# IAM role is attached to the instance: there are no static AWS access keys.
+SECRET_JSON=""
+for attempt in $(seq 1 18); do
+  if SECRET_JSON=$(aws secretsmanager get-secret-value \
+      --secret-id "$DB_SECRET_ARN" --region "$AWS_REGION" \
+      --query SecretString --output text); then
     break
   fi
-  sleep 5
+  sleep 10
 done
 
+if [ -z "$SECRET_JSON" ]; then
+  echo "ERROR: no fue posible leer las credenciales de RDS" >&2
+  exit 1
+fi
+
+mkdir -p /opt/wikijs
+umask 077
+printf '%s' "$SECRET_JSON" | jq -er '.password' > /opt/wikijs/db-password
+unset SECRET_JSON
+chmod 600 /opt/wikijs/db-password
+
+# Trust the RDS CA bundle while enforcing TLS to PostgreSQL.
+curl --fail --silent --show-error --location \
+  https://truststore.pki.rds.amazonaws.com/global/global-bundle.pem \
+  --output /opt/wikijs/rds-global-bundle.pem
+chmod 644 /opt/wikijs/rds-global-bundle.pem
+
+# Only Wiki.js remains a Docker container; PostgreSQL lives in managed RDS.
 docker run -d \
   --name wikijs \
   --restart unless-stopped \
-  --network wikijs-network \
   -p 3000:3000 \
+  -v /opt/wikijs/db-password:/run/secrets/db-password:ro \
+  -v /opt/wikijs/rds-global-bundle.pem:/etc/ssl/certs/rds-bundle.pem:ro \
   -e DB_TYPE=postgres \
-  -e DB_HOST=wikijs-postgres \
-  -e DB_PORT=5432 \
-  -e DB_USER="$${DB_USER}" \
-  -e DB_PASS="$${DB_PASSWORD}" \
-  -e DB_NAME="$${DB_NAME}" \
+  -e DB_HOST="$DB_HOST" \
+  -e DB_PORT="$DB_PORT" \
+  -e DB_USER="$DB_USER" \
+  -e DB_PASS_FILE=/run/secrets/db-password \
+  -e DB_NAME="$DB_NAME" \
+  -e DB_SSL=1 \
+  -e NODE_EXTRA_CA_CERTS=/etc/ssl/certs/rds-bundle.pem \
   requarks/wiki:2
