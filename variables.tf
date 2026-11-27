@@ -99,8 +99,8 @@ variable "db_password" {
   type      = string
   sensitive = true
   validation {
-    condition     = can(regex("^[A-Za-z0-9_-]{16,64}$", var.db_password))
-    error_message = "Usa 16 a 64 caracteres alfanuméricos, guion o guion bajo."
+    condition     = can(regex("^[A-Za-z0-9_-]{8,64}$", var.db_password))
+    error_message = "Usa 8 a 64 caracteres alfanuméricos, guion o guion bajo."
   }
 }
 
@@ -108,7 +108,7 @@ variable "grafana_password" {
   type      = string
   sensitive = true
   validation {
-    condition     = can(regex("^[A-Za-z0-9_-]{16,64}$", var.grafana_password))
-    error_message = "Usa 16 a 64 caracteres alfanuméricos, guion o guion bajo."
+    condition     = can(regex("^[A-Za-z0-9_-]{8,64}$", var.grafana_password))
+    error_message = "Usa 8 a 64 caracteres alfanuméricos, guion o guion bajo."
   }
 }

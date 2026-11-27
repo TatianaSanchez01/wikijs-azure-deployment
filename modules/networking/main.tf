@@ -92,7 +92,7 @@ resource "aws_security_group" "web" {
   vpc_id      = aws_vpc.main.id
 
   ingress {
-    description = "Acceso web de demostración"
+    description = "Acceso web de demostracion"
     from_port   = 3000
     to_port     = 3000
     protocol    = "tcp"

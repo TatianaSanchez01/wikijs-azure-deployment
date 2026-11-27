@@ -8,7 +8,7 @@ EC2 Amazon Linux 2023 (t3.medium por defecto) con Docker Compose: Wiki.js, Prome
 ## Preparación
 1. Inicia el laboratorio y crea un key pair EC2 en la región. Obtén tu IP pública /32.
 2. Crea un bucket S3 único privado, cifrado y versionado para estado Terraform. No compartas el estado: contiene contraseñas y user_data. Permite lectura/escritura del estado y archivo .tflock a las credenciales del laboratorio.
-3. GitHub Settings > Secrets and variables > Actions: configura secrets AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, AWS_SESSION_TOKEN, TF_VAR_DB_PASSWORD y TF_VAR_GRAFANA_PASSWORD (contraseñas distintas, 16–64 caracteres A-Z a-z 0-9 _ -). Renueva las tres credenciales AWS cuando expiren. Variables: AWS_REGION (us-east-1), TF_STATE_BUCKET, SSH_ALLOWED_CIDR, EC2_KEY_PAIR.
+3. GitHub Settings > Secrets and variables > Actions: configura secrets AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, AWS_SESSION_TOKEN, TF_VAR_DB_PASSWORD y TF_VAR_GRAFANA_PASSWORD (contraseñas distintas, 8–64 caracteres A-Z a-z 0-9 _ -). Renueva las tres credenciales AWS cuando expiren. Variables: AWS_REGION (us-east-1), TF_STATE_BUCKET, SSH_ALLOWED_CIDR, EC2_KEY_PAIR.
 4. CI en push/PR a wiki-aws-improvements: formato, init sin backend y validate. Plan/apply solo manual desde dicha rama y con credenciales vigentes. Si GitHub no muestra Run workflow porque el archivo no está en la rama por defecto, integra primero el workflow mediante PR o usa ejecución local. No se sube plan/state como artefacto público.
 5. Ejecuta plan antes de apply; no se aplica automáticamente.
 
