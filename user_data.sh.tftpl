@@ -1,66 +1,18 @@
 #!/bin/bash
 set -euo pipefail
-
-# Never use shell tracing here: the script reads the DB password.
-dnf update -y
-dnf install -y docker jq amazon-cloudwatch-agent curl awscli
-systemctl enable --now docker
-
-mkdir -p /opt/aws/amazon-cloudwatch-agent/etc
-cat > /opt/aws/amazon-cloudwatch-agent/etc/wikijs-config.json <<'CW_CONFIG'
-${cloudwatch_config_json}
-CW_CONFIG
-/opt/aws/amazon-cloudwatch-agent/bin/amazon-cloudwatch-agent-ctl \
-  -a fetch-config -m ec2 -s -c file:/opt/aws/amazon-cloudwatch-agent/etc/wikijs-config.json
-
-AWS_REGION="${aws_region}"
-DB_SECRET_ARN="${db_secret_arn}"
-DB_HOST="${db_host}"
-DB_PORT="${db_port}"
-DB_USER="${db_username}"
-DB_NAME="${db_name}"
-
-# IAM role is attached to the instance: there are no static AWS access keys.
-SECRET_JSON=""
-for attempt in $(seq 1 18); do
-  if SECRET_JSON=$(aws secretsmanager get-secret-value \
-      --secret-id "$DB_SECRET_ARN" --region "$AWS_REGION" \
-      --query SecretString --output text); then
-    break
-  fi
-  sleep 10
-done
-
-if [ -z "$SECRET_JSON" ]; then
-  echo "ERROR: no fue posible leer las credenciales de RDS" >&2
-  exit 1
-fi
-
-mkdir -p /opt/wikijs
 umask 077
-printf '%s' "$SECRET_JSON" | jq -er '.password' > /opt/wikijs/db-password
-unset SECRET_JSON
-chmod 600 /opt/wikijs/db-password
-
-# Trust the RDS CA bundle while enforcing TLS to PostgreSQL.
-curl --fail --silent --show-error --location \
-  https://truststore.pki.rds.amazonaws.com/global/global-bundle.pem \
-  --output /opt/wikijs/rds-global-bundle.pem
-chmod 644 /opt/wikijs/rds-global-bundle.pem
-
-# Only Wiki.js remains a Docker container; PostgreSQL lives in managed RDS.
-docker run -d \
-  --name wikijs \
-  --restart unless-stopped \
-  -p 3000:3000 \
-  -v /opt/wikijs/db-password:/run/secrets/db-password:ro \
-  -v /opt/wikijs/rds-global-bundle.pem:/etc/ssl/certs/rds-bundle.pem:ro \
-  -e DB_TYPE=postgres \
-  -e DB_HOST="$DB_HOST" \
-  -e DB_PORT="$DB_PORT" \
-  -e DB_USER="$DB_USER" \
-  -e DB_PASS_FILE=/run/secrets/db-password \
-  -e DB_NAME="$DB_NAME" \
-  -e DB_SSL=1 \
-  -e NODE_EXTRA_CA_CERTS=/etc/ssl/certs/rds-bundle.pem \
-  requarks/wiki:2
+dnf install -y docker curl
+systemctl enable --now docker
+mkdir -p /usr/local/lib/docker/cli-plugins /opt/wikijs/monitoring/grafana
+curl -fsSL --retry 5 https://github.com/docker/compose/releases/download/v2.32.4/docker-compose-linux-x86_64 -o /usr/local/lib/docker/cli-plugins/docker-compose
+chmod 755 /usr/local/lib/docker/cli-plugins/docker-compose
+cd /opt/wikijs
+printf '%s' '${compose_b64}' | base64 -d > compose.yml
+printf '%s' '${prometheus_b64}' | base64 -d > monitoring/prometheus.yml
+printf '%s' '${datasource_b64}' | base64 -d > monitoring/grafana/datasource.yml
+printf '%s' '${dashboards_b64}' | base64 -d > monitoring/grafana/dashboards.yml
+printf '%s' '${dashboard_b64}' | base64 -d > monitoring/grafana/dashboard.json
+curl -fsSL --retry 5 https://truststore.pki.rds.amazonaws.com/global/global-bundle.pem -o rds.pem
+chmod 644 rds.pem monitoring/prometheus.yml monitoring/grafana/*.yml monitoring/grafana/*.json
+chmod 755 monitoring monitoring/grafana
+docker compose up -d

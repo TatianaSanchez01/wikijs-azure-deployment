@@ -4,7 +4,7 @@ module "networking" {
   project_name         = var.project_name
   vpc_cidr             = var.vpc_cidr
   public_subnet_cidr   = var.public_subnet_cidr
-  private_subnet_cidrs = var.private_subnet_cidrs
+  private_subnet_cidrs  = var.private_subnet_cidrs
   app_allowed_cidrs    = var.app_allowed_cidrs
   my_ip                = var.my_ip
 }
@@ -14,16 +14,12 @@ module "database" {
 
   project_name          = var.project_name
   vpc_id                = module.networking.vpc_id
-  private_subnet_ids    = module.networking.private_subnet_ids
+  private_subnet_ids     = module.networking.private_subnet_ids
   app_security_group_id = module.networking.web_security_group_id
   db_name               = var.db_name
   db_username           = var.db_username
   db_instance_class     = var.db_instance_class
-}
-
-resource "aws_cloudwatch_log_group" "application" {
-  name              = "/aws/ec2/${var.project_name}/wikijs"
-  retention_in_days = 7
+  db_password           = var.db_password
 }
 
 module "compute" {
@@ -35,14 +31,13 @@ module "compute" {
   instance_type     = var.instance_type
   root_volume_size  = var.root_volume_size
   key_name          = var.key_name
-  aws_region        = var.aws_region
 
-  db_name        = var.db_name
-  db_username    = var.db_username
-  db_host        = module.database.endpoint
-  db_port        = module.database.port
-  db_secret_arn  = module.database.master_user_secret_arn
-  log_group_name = aws_cloudwatch_log_group.application.name
+  db_name          = var.db_name
+  db_username      = var.db_username
+  db_host          = module.database.endpoint
+  db_port          = module.database.port
+  db_password      = var.db_password
+  grafana_password = var.grafana_password
 }
 
 module "observability" {
@@ -52,6 +47,5 @@ module "observability" {
   aws_region            = var.aws_region
   ec2_instance_id       = module.compute.instance_id
   rds_identifier        = module.database.identifier
-  application_log_group = aws_cloudwatch_log_group.application.name
   alert_email           = var.alert_email
 }

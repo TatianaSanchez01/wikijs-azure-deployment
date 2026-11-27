@@ -1,0 +1,71 @@
+services:
+  wikijs:
+    image: requarks/wiki:2
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      DB_TYPE: postgres
+      DB_HOST: "${db_host}"
+      DB_PORT: "${db_port}"
+      DB_NAME: "${db_name}"
+      DB_USER: "${db_username}"
+      DB_PASS: "${db_password}"
+      DB_SSL: "1"
+      NODE_EXTRA_CA_CERTS: /certs/rds.pem
+    volumes:
+      - ./rds.pem:/certs/rds.pem:ro
+    logging:
+      options:
+        max-size: "10m"
+        max-file: "3"
+  prometheus:
+    image: prom/prometheus:v3.2.1
+    restart: unless-stopped
+    command: ["--config.file=/etc/prometheus/prometheus.yml", "--storage.tsdb.retention.time=3d", "--storage.tsdb.retention.size=1GB"]
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus-data:/prometheus
+  grafana:
+    image: grafana/grafana:11.5.2
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:3001:3000"
+    environment:
+      GF_SECURITY_ADMIN_PASSWORD: "${grafana_password}"
+      GF_USERS_ALLOW_SIGN_UP: "false"
+    volumes:
+      - grafana-data:/var/lib/grafana
+      - ./monitoring/grafana/datasource.yml:/etc/grafana/provisioning/datasources/prometheus.yml:ro
+      - ./monitoring/grafana/dashboards.yml:/etc/grafana/provisioning/dashboards/default.yml:ro
+      - ./monitoring/grafana/dashboard.json:/var/lib/grafana/dashboards/wikijs.json:ro
+  node-exporter:
+    image: prom/node-exporter:v1.9.0
+    restart: unless-stopped
+    pid: host
+    command: ["--path.rootfs=/host"]
+    volumes:
+      - /:/host:ro,rslave
+  cadvisor:
+    image: gcr.io/cadvisor/cadvisor:v0.49.2
+    restart: unless-stopped
+    privileged: true
+    volumes:
+      - /:/rootfs:ro
+      - /var/run:/var/run:ro
+      - /sys:/sys:ro
+      - /var/lib/docker:/var/lib/docker:ro
+      - /dev/disk:/dev/disk:ro
+  postgres-exporter:
+    image: prometheuscommunity/postgres-exporter:v0.17.1
+    restart: unless-stopped
+    environment:
+      DATA_SOURCE_NAME: "postgresql://${db_username}:${db_password}@${db_host}:${db_port}/${db_name}?sslmode=verify-full&sslrootcert=/certs/rds.pem"
+    volumes:
+      - ./rds.pem:/certs/rds.pem:ro
+  blackbox:
+    image: prom/blackbox-exporter:v0.26.0
+    restart: unless-stopped
+volumes:
+  prometheus-data:
+  grafana-data:

@@ -36,13 +36,13 @@ variable "private_subnet_cidrs" {
 variable "app_allowed_cidrs" {
   description = "CIDR permitidos al puerto HTTP 3000 de Wiki.js."
   type        = list(string)
-  default     = ["0.0.0.0/0"]
+  default     = []
 }
 
 variable "instance_type" {
   description = "Tipo de instancia EC2."
   type        = string
-  default     = "t3.small"
+  default     = "t3.medium"
 }
 
 variable "root_volume_size" {
@@ -93,4 +93,22 @@ variable "my_ip" {
 variable "key_name" {
   description = "Nombre de un par de claves EC2 existente."
   type        = string
+}
+
+variable "db_password" {
+  type      = string
+  sensitive = true
+  validation {
+    condition     = can(regex("^[A-Za-z0-9_-]{16,64}$", var.db_password))
+    error_message = "Usa 16 a 64 caracteres alfanuméricos, guion o guion bajo."
+  }
+}
+
+variable "grafana_password" {
+  type      = string
+  sensitive = true
+  validation {
+    condition     = can(regex("^[A-Za-z0-9_-]{16,64}$", var.grafana_password))
+    error_message = "Usa 16 a 64 caracteres alfanuméricos, guion o guion bajo."
+  }
 }

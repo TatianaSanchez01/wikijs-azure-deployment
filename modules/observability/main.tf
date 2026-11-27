@@ -8,13 +8,12 @@ resource "aws_cloudwatch_dashboard" "wikijs" {
         width  = 12
         height = 6
         properties = {
-          title  = "EC2: CPU y memoria (%)"
+          title  = "EC2: CPU (%)"
           region = var.aws_region
           period = 300
           stat   = "Average"
           metrics = [
-            ["AWS/EC2", "CPUUtilization", "InstanceId", var.ec2_instance_id],
-            ["WikiJS/Infrastructure", "mem_used_percent", "InstanceId", var.ec2_instance_id]
+            ["AWS/EC2", "CPUUtilization", "InstanceId", var.ec2_instance_id]
           ]
         }
       },
@@ -38,12 +37,13 @@ resource "aws_cloudwatch_dashboard" "wikijs" {
         width  = 12
         height = 6
         properties = {
-          title  = "EC2: espacio usado en disco (%)"
+          title  = "EC2: tráfico de red (bytes)"
           region = var.aws_region
           period = 300
           stat   = "Average"
           metrics = [
-            ["WikiJS/Infrastructure", "disk_used_percent", "InstanceId", var.ec2_instance_id]
+            ["AWS/EC2", "NetworkIn", "InstanceId", var.ec2_instance_id],
+            ["AWS/EC2", "NetworkOut", "InstanceId", var.ec2_instance_id]
           ]
         }
       },
@@ -105,21 +105,6 @@ resource "aws_cloudwatch_metric_alarm" "ec2_status" {
   period              = 60
   evaluation_periods  = 2
   threshold           = 0
-  comparison_operator = "GreaterThanThreshold"
-  treat_missing_data  = "missing"
-  dimensions          = { InstanceId = var.ec2_instance_id }
-  alarm_actions       = local.alarm_actions
-}
-
-resource "aws_cloudwatch_metric_alarm" "ec2_memory" {
-  alarm_name          = "${var.project_name}-ec2-high-memory"
-  alarm_description   = "Memoria usada superior a 85% durante 10 minutos"
-  namespace           = "WikiJS/Infrastructure"
-  metric_name         = "mem_used_percent"
-  statistic           = "Average"
-  period              = 300
-  evaluation_periods  = 2
-  threshold           = 85
   comparison_operator = "GreaterThanThreshold"
   treat_missing_data  = "missing"
   dimensions          = { InstanceId = var.ec2_instance_id }

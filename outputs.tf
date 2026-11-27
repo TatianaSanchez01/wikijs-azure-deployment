@@ -25,8 +25,9 @@ output "cloudwatch_dashboard" {
   value       = module.observability.dashboard_name
 }
 
-output "cloudwatch_log_group" {
-  value = aws_cloudwatch_log_group.application.name
+output "grafana_url" {
+  value       = "http://localhost:3001"
+  description = "Acceso mediante túnel SSH al puerto 3001 de EC2."
 }
 
 output "ssh_connect_command" {

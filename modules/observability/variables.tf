@@ -10,9 +10,6 @@ variable "ec2_instance_id" {
 variable "rds_identifier" {
   type = string
 }
-variable "application_log_group" {
-  type = string
-}
 variable "alert_email" {
   type = string
 }
